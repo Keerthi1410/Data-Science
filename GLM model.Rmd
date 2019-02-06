@@ -1,0 +1,222 @@
+---
+title: "Conversion Communication Efficacy-Logistic Regression model"
+author: "Kaushal & Keerthi"
+date: "July 22, 2018"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("M:/2018 Strategic Analytics Interns/Data")
+```
+
+```{r}
+setwd("M:/2018 Strategic Analytics Interns/Data")
+```
+
+```{r}
+library(data.table)
+```
+
+```{r}
+fd<-fread("memberfinaldata.csv")
+```
+
+
+```{r}
+colnames(fd)
+```
+
+```{r}
+library(dplyr)
+
+fd<-select(fd,c(16,17,18,19,20,21,23,24,25,26,27,28,29,39,68,70))
+
+
+```
+
+```{r}
+df<-fd
+```
+```{r}
+df<-na.omit(df)
+
+str(df)
+```
+
+```{r}
+df$AGE_GRP<-df$AGE
+df$AGE_GRP<-ifelse((df$AGE>=0 & df$AGE<=17),'1',df$AGE_GRP)
+df$AGE_GRP<-ifelse((df$AGE>=18 & df$AGE<=30),'2',df$AGE_GRP)
+df$AGE_GRP<-ifelse((df$AGE>=31 & df$AGE<=60),'3',df$AGE_GRP)
+df$AGE_GRP<-ifelse((df$AGE>=61 & df$AGE<=110),'4',df$AGE_GRP)
+```
+```{r}
+age<-c(0:110)
+
+df<-filter(df,AGE %in% age)
+```
+
+```{r}
+person_nbr<-c(1:6)
+
+df<-filter(df,PERSON_NBR %in% person_nbr)
+```
+
+```{r}
+str(df)
+
+colnames(df)
+
+df$BRAND_GENERIC_CDE<-as.factor(df$BRAND_GENERIC_CDE)
+
+df$GENDER_CDE<-as.factor(df$GENDER_CDE)
+
+df$AGE_GRP<-as.factor(df$AGE_GRP)
+```
+```{r}
+str(df)
+```
+
+```{r}
+for(i in 1:7) {df[, i] <- as.numeric(df[, i])} 
+
+df$AGE<-as.numeric(df$AGE)
+df$PERSON_NBR<-as.numeric(df$PERSON_NBR)
+df$RELSHP_CDE<-as.numeric(df$RELSHP_CDE)
+df$APT_IND<-as.numeric(df$APT_IND)
+```
+
+```{r}
+str(df)
+```
+```{r}
+library(caret)
+```
+
+```{r}
+dmy <- dummyVars(" ~ .", data = df,fullRank = T)
+df_transformed <- data.frame(predict(dmy, newdata = df))
+```
+
+```{r}
+df_transformed$PAT_RTM_CNVTR<-as.factor(df_transformed$PAT_RTM_CNVTR)
+```
+
+```{r}
+index <- createDataPartition(df_transformed$PAT_RTM_CNVTR, p=0.75, list=FALSE)
+trainSet <- df_transformed[ index,]
+testSet <- df_transformed[-index,]
+```
+```{r}
+trainSet<-trainSet[,-c(11)]
+testSet<-testSet[,-c(11)]
+```
+
+```{r}
+'%ni%' <- Negate('%in%')
+```
+
+```{r}
+set.seed(100)
+down_train <- downSample(x = trainSet[, colnames(trainSet) %ni% "PAT_RTM_CNVTR"],
+                         y = trainSet$PAT_RTM_CNV)
+
+```
+
+```{r}
+table(down_train$Class)
+
+```
+
+```{r}
+down_train$PAT_RTM_CNVTR<-down_train$Class
+```
+
+```{r}
+down_train<-down_train[,-c(20)]
+```
+
+```{r}
+set.seed(100)
+up_train <- upSample(x = trainSet[, colnames(trainSet) %ni% "PAT_RTM_CNVTR"],
+                     y = trainSet$PAT_RTM_CNVTR)
+
+```
+
+```{r}
+table(up_train$Class)
+
+```
+
+```{r}
+up_train$PAT_RTM_CNVTR<-up_train$Class
+```
+
+```{r}
+up_train<-up_train[,-c(20)]
+```
+
+```{r}
+logitmod <- glm(PAT_RTM_CNVTR ~ ., family = "binomial", data=down_train)
+```
+
+```{r}
+summary(logitmod)
+
+```
+
+```{r}
+pred <- predict(logitmod, newdata = testSet, type = "response")
+```
+
+```{r}
+y_pred_num <- ifelse(pred > 0.5, 1, 0)
+y_pred <- factor(y_pred_num, levels=c(0, 1))
+y_act <- testSet$PAT_RTM_CNVTR
+```
+
+```{r}
+mean(y_pred == y_act)
+```
+```{r}
+varImp(object=logitmod)
+
+```
+
+```{r}
+plot(varImp(object=logitmod),main="GLM - Variable Importance")
+```
+```{r}
+outcomeName<-'PAT_RTM_CNVTR'
+
+```
+
+```{r}
+predictors<-names(down_train)[!names(down_train) %in% outcomeName]
+model_glm<-train(down_train[,predictors],down_train[,outcomeName],method='glm')
+```
+
+```{r}
+varImp(object=model_glm)
+
+```
+
+```{r}
+plot(varImp(object=model_glm),main="GLM - Variable Importance")
+```
+```{r}
+predictions<-predict.train(object=model_glm,testSet[,predictors],type="raw")
+```
+
+```{r}
+table(predictions)
+```
+
+```{r}
+confusionMatrix(predictions,testSet[,outcomeName])
+
+```
+

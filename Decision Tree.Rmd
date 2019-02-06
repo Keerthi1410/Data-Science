@@ -1,0 +1,205 @@
+---
+title: "Decision Tree"
+author: "Kaushal & Keerthi"
+date: "July 26, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+setwd("M:/2018 Strategic Analytics Interns/Data")
+```
+
+```{r}
+library(caret)
+library(rpart.plot)
+```
+```{r}
+library(data.table)
+```
+
+```{r}
+fd<-fread("memberfinaldata.csv")
+```
+
+
+```{r}
+colnames(fd)
+```
+
+```{r}
+library(dplyr)
+
+fd<-select(fd,c(16,17,18,19,20,21,23,24,25,26,27,28,29,39,68,70))
+
+
+```
+
+```{r}
+df<-fd
+```
+```{r}
+df<-na.omit(df)
+
+str(df)
+```
+
+```{r}
+df$AGE_GRP<-df$AGE
+df$AGE_GRP<-ifelse((df$AGE>=0 & df$AGE<=17),'1',df$AGE_GRP)
+df$AGE_GRP<-ifelse((df$AGE>=18 & df$AGE<=30),'2',df$AGE_GRP)
+df$AGE_GRP<-ifelse((df$AGE>=31 & df$AGE<=60),'3',df$AGE_GRP)
+df$AGE_GRP<-ifelse((df$AGE>=61 & df$AGE<=110),'4',df$AGE_GRP)
+```
+```{r}
+age<-c(0:110)
+
+df<-filter(df,AGE %in% age)
+```
+
+```{r}
+person_nbr<-c(1:6)
+
+df<-filter(df,PERSON_NBR %in% person_nbr)
+```
+
+```{r}
+str(df)
+
+colnames(df)
+
+df$BRAND_GENERIC_CDE<-as.factor(df$BRAND_GENERIC_CDE)
+
+df$GENDER_CDE<-as.factor(df$GENDER_CDE)
+
+df$AGE_GRP<-as.factor(df$AGE_GRP)
+```
+```{r}
+str(df)
+```
+
+```{r}
+for(i in 1:7) {df[, i] <- as.numeric(df[, i])} 
+
+df$AGE<-as.numeric(df$AGE)
+df$PERSON_NBR<-as.numeric(df$PERSON_NBR)
+df$RELSHP_CDE<-as.numeric(df$RELSHP_CDE)
+df$APT_IND<-as.numeric(df$APT_IND)
+```
+
+```{r}
+str(df)
+```
+```{r}
+library(caret)
+```
+
+```{r}
+dmy <- dummyVars(" ~ .", data = df,fullRank = T)
+df_transformed <- data.frame(predict(dmy, newdata = df))
+```
+
+```{r}
+df_transformed$PAT_RTM_CNVTR<-as.factor(df_transformed$PAT_RTM_CNVTR)
+```
+
+```{r}
+set.seed(3033)
+index <- createDataPartition(y=df_transformed$PAT_RTM_CNVTR, p=0.75, list=FALSE)
+trainSet <- df_transformed[ index,]
+testSet <- df_transformed[-index,]
+```
+
+```{r}
+dim(trainSet); dim(testSet);
+```
+```{r}
+anyNA(df)
+```
+
+```{r}
+trainSet<-trainSet[,-c(11)]
+testSet<-testSet[,-c(11)]
+```
+
+```{r}
+'%ni%' <- Negate('%in%')
+options(scipen=999)
+```
+
+```{r}
+set.seed(100)
+down_train <- downSample(x = trainSet[, colnames(trainSet) %ni% "PAT_RTM_CNVTR"],
+                         y = trainSet$PAT_RTM_CNV)
+
+```
+
+```{r}
+table(down_train$Class)
+
+```
+
+```{r}
+down_train$PAT_RTM_CNVTR<-down_train$Class
+```
+
+```{r}
+down_train<-down_train[,-c(20)]
+```
+
+```{r}
+trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+set.seed(3333)
+dtree_fit <- train(PAT_RTM_CNVTR ~., data =down_train, method = "rpart",
+                   parms = list(split = "information"),
+                   trControl=trctrl,
+                   tuneLength = 10)
+```
+
+```{r}
+dtree_fit
+```
+```{r}
+prp(dtree_fit$finalModel, box.palette = "Reds", tweak = 1.2)
+```
+
+```{r}
+testSet[1,]
+```
+
+```{r}
+predict(dtree_fit, newdata = testSet[1,])
+```
+
+```{r}
+test_pred <- predict(dtree_fit, newdata = testSet)
+```
+
+```{r}
+confusionMatrix(test_pred, testSet$PAT_RTM_CNVTR )#check accuracy
+```
+
+```{r}
+set.seed(3333)
+dtree_fit_gini <- train(PAT_RTM_CNVTR ~., data = down_train, method = "rpart",
+                  parms = list(split = "gini"),
+                  trControl=trctrl,
+                  tuneLength = 10)
+```
+
+```{r}
+dtree_fit_gini
+```
+
+```{r}
+prp(dtree_fit_gini$finalModel, box.palette = "Purples", tweak = 1.2)
+```
+```{r}
+test_pred_gini <- predict(dtree_fit_gini, newdata = testSet)
+confusionMatrix(test_pred_gini, testSet$PAT_RTM_CNVTR )#check accuracy
+```
+
