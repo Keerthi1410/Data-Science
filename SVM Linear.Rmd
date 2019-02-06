@@ -1,17 +1,6 @@
----
-title: "Support Vector Machine"
-author: "Keerthi & Kaushal"
-date: "July 26, 2018"
-output: html_document
----
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-
-```{r}
-setwd("M:/2018 Strategic Analytics Interns/Data")
 ```
 
 ```{r}
