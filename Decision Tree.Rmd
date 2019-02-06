@@ -9,11 +9,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
-```{r}
-setwd("M:/2018 Strategic Analytics Interns/Data")
-```
-
 ```{r}
 library(caret)
 library(rpart.plot)
