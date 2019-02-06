@@ -1,21 +1,8 @@
----
-title: "Conversion Communication Efficacy-Logistic Regression model"
-author: "Kaushal & Keerthi"
-date: "July 22, 2018"
-output:
-  html_document: default
-  pdf_document: default
----
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 setwd("M:/2018 Strategic Analytics Interns/Data")
 ```
-
-```{r}
-setwd("M:/2018 Strategic Analytics Interns/Data")
-```
-
 ```{r}
 library(data.table)
 ```
